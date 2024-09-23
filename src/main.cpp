@@ -11,67 +11,68 @@ RotaryEncoder *encoder = nullptr;
 
 const int EEPROM_START = 0;
 const int BUTTON_PIN = 8;
+const int DEFAULT_TIMER_DURATION = 10000;
 
 void checkPosition()
 {
-  encoder->tick(); // just call tick() to check the state.
+    encoder->tick(); // just call tick() to check the state.
 }
 
 unsigned long timerDurationMillis = 0;
 void setup()
 {
-  // put your setup code here, to run once:
-  lcd.begin(16, 2);
+    // put your setup code here, to run once:
+    lcd.begin(16, 2);
 
-  EEPROM.get(EEPROM_START, timerDurationMillis);
+    EEPROM.get(EEPROM_START, timerDurationMillis);
 
-  printTime(timerDurationMillis);
+    printTime(timerDurationMillis);
 
-  if (timerDurationMillis != 10000)
-  {
-    timerDurationMillis = 10000;
-    EEPROM.put(EEPROM_START, timerDurationMillis);
-  }
+    if (timerDurationMillis != DEFAULT_TIMER_DURATION)
+    {
+        timerDurationMillis = DEFAULT_TIMER_DURATION;
+        EEPROM.put(EEPROM_START, timerDurationMillis);
+    }
 
-  encoder = new RotaryEncoder(A2, A3, RotaryEncoder::LatchMode::TWO03);
+    encoder = new RotaryEncoder(A2, A3, RotaryEncoder::LatchMode::TWO03);
 
-  attachInterrupt(digitalPinToInterrupt(A2), checkPosition, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(A3), checkPosition, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(A2), checkPosition, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(A3), checkPosition, CHANGE);
 }
 
 void loop()
 {
-  static int pos = 0;
+    static int pos = 0;
 
-  encoder->tick();
-  int newPos = encoder->getPosition();
+    encoder->tick();
+    int newPos = encoder->getPosition();
 
-  if (pos != newPos)
-  {
-    switch (encoder->getDirection())
+    if (pos != newPos)
     {
-    case RotaryEncoder::Direction::CLOCKWISE:
-      timerDurationMillis += 100;
-      break;
-    case RotaryEncoder::Direction::COUNTERCLOCKWISE:
-      timerDurationMillis -= 100;
-      break;
-    case RotaryEncoder::Direction::NOROTATION:
-      break;
-    }
+        switch (encoder->getDirection())
+        {
+        case RotaryEncoder::Direction::CLOCKWISE:
+            timerDurationMillis += 100;
+            break;
+        case RotaryEncoder::Direction::COUNTERCLOCKWISE:
+            timerDurationMillis -= 100;
+            break;
+        case RotaryEncoder::Direction::NOROTATION:
+            break;
+        }
 
-    printTime(timerDurationMillis);
-    pos = newPos;
-  }
+        printTime(timerDurationMillis);
+        pos = newPos;
+    }
 }
 
 void printTime(unsigned long time)
 {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(time / 1000);
-  lcd.print(".");
-  unsigned long decimal_part = time % 1000 / 10; // remove the 1000ths place
-  lcd.print(decimal_part / 10);
-  lcd.print(decimal_part % 10);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(time / 1000);
+    lcd.print(".");
+    unsigned long decimal_part = time % 1000 / 10; // remove the 1000ths place
+    lcd.print(decimal_part / 10);
+    lcd.print(decimal_part % 10);
 }
