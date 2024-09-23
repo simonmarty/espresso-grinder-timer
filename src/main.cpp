@@ -1,73 +1,67 @@
 #include <Arduino.h>
 #include <LiquidCrystal.h>
+#include <RotaryEncoder.h>
+#include <EEPROM.h>
 
 LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
-unsigned long timerEnd;
-
-const unsigned long DURATION = 5000;
-const int BUTTON_PIN = 8;
-const int RELAY_PIN = 2;
-
-unsigned long lastReset = 0;
-bool isCounting = false;
-
-unsigned long lastDebounceTime = 0;
-unsigned long debounceDelay = 50;
-bool previous = HIGH;
 
 void printTime(unsigned long time);
 
+RotaryEncoder *encoder = nullptr;
+
+const int EEPROM_START = 0;
+const int BUTTON_PIN = 8;
+
+void checkPosition()
+{
+  encoder->tick(); // just call tick() to check the state.
+}
+
+unsigned long timerDurationMillis = 0;
 void setup()
 {
   // put your setup code here, to run once:
   lcd.begin(16, 2);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, HIGH);
+
+  EEPROM.get(EEPROM_START, timerDurationMillis);
+
+  printTime(timerDurationMillis);
+
+  if (timerDurationMillis != 10000)
+  {
+    timerDurationMillis = 10000;
+    EEPROM.put(EEPROM_START, timerDurationMillis);
+  }
+
+  encoder = new RotaryEncoder(A2, A3, RotaryEncoder::LatchMode::TWO03);
+
+  attachInterrupt(digitalPinToInterrupt(A2), checkPosition, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(A3), checkPosition, CHANGE);
 }
 
 void loop()
 {
-  bool current = digitalRead(8);
+  static int pos = 0;
 
-  if (current != previous)
+  encoder->tick();
+  int newPos = encoder->getPosition();
+
+  if (pos != newPos)
   {
-    lastDebounceTime = millis();
-  }
-
-  if (millis() - lastDebounceTime > debounceDelay)
-  {
-    if (current != previous)
+    switch (encoder->getDirection())
     {
-      previous = current;
+    case RotaryEncoder::Direction::CLOCKWISE:
+      timerDurationMillis += 100;
+      break;
+    case RotaryEncoder::Direction::COUNTERCLOCKWISE:
+      timerDurationMillis -= 100;
+      break;
+    case RotaryEncoder::Direction::NOROTATION:
+      break;
     }
 
-    if (current == LOW && !isCounting)
-    {
-      isCounting = true;
-    }
-
-    timerEnd = millis() + DURATION;
-    digitalWrite(2, LOW);
-    isCounting = true;
-    lcd.clear();
-    delay(20); // debounce
-  }
-  previous = current;
-
-  if (isCounting)
-  {
-    if (millis() >= timerEnd)
-    {
-      digitalWrite(2, HIGH);
-      isCounting = false;
-      printTime(DURATION);
-    }
-    else
-    {
-      unsigned long timerLeft = timerEnd - millis();
-      printTime(timerLeft);
-    }
+    printTime(timerDurationMillis);
+    pos = newPos;
   }
 }
 
