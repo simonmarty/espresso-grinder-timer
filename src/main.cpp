@@ -3,7 +3,7 @@
 #include <RotaryEncoder.h>
 #include <EEPROM.h>
 
-LiquidCrystal lcd(12, 11, 7, 6, 5, 4);
+LiquidCrystal lcd(5, 4, 9, 8, 7, 6);
 
 void printTime(unsigned long time);
 void updateRotaryEncoder();
@@ -12,16 +12,22 @@ void saveTimer();
 void updateButton();
 void startTimer();
 void updateTimer();
+void updateBacklight();
 
 RotaryEncoder *encoder = nullptr;
+
+const int BACKLIGHT_PIN = 15;
 
 const unsigned long TIMER_INCREMENT_MILLIS = 100;
 const unsigned long TIMER_MIN = TIMER_INCREMENT_MILLIS;
 const unsigned long TIMER_MAX = 100000 - TIMER_INCREMENT_MILLIS;
+const unsigned long BACKLIGHT_DELAY = 5000;
 
 const int EEPROM_START = 0;
-const int BUTTON_PIN = 8;
+const int BUTTON_PIN = 10;
+
 const int DEFAULT_TIMER_DURATION = 10000;
+unsigned long timerStart;
 unsigned long timerEnd;
 
 const int ROTARY_ENCODER_PIN1 = A2;
@@ -37,11 +43,13 @@ bool lastButtonState = HIGH;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 
-const int RELAY_PIN = 2;
+const int RELAY_PIN = 14;
 
 unsigned long lastTimeAutoSave;
 const unsigned long AUTOSAVE_INTERVAL_MILLIS = 10000;
 unsigned long lastTimeSinceTimerUpdate;
+
+unsigned long lastInputTime = 0;
 
 void checkPosition()
 {
@@ -65,6 +73,8 @@ void setup()
 
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(RELAY_PIN, OUTPUT);
+    pinMode(BACKLIGHT_PIN, OUTPUT);
+    digitalWrite(BACKLIGHT_PIN, HIGH);
     digitalWrite(RELAY_PIN, HIGH);
     encoder = new RotaryEncoder(ROTARY_ENCODER_PIN1, ROTARY_ENCODER_PIN2, RotaryEncoder::LatchMode::TWO03);
 
@@ -79,7 +89,7 @@ void loop()
 
     if (countingDown)
     {
-        printTime(timerEnd - millis());
+        printTime(millis() - timerStart);
     }
     else
     {
@@ -88,6 +98,8 @@ void loop()
 
     updateTimer();
     autoSaveTimer();
+
+    updateBacklight();
 }
 
 void printTime(unsigned long time)
@@ -139,6 +151,7 @@ void updateRotaryEncoder()
             break;
         }
 
+        lastInputTime = millis();
         rotaryEncoderPosition = newPos;
     }
 }
@@ -165,11 +178,15 @@ void updateButton()
                     countingDown = false;
                     digitalWrite(RELAY_PIN, HIGH);
                     timerEnd = millis();
+                    printTime(timerEnd - timerStart);
+                    delay(1000); // remove this
                 }
                 else
                 {
                     startTimer();
                 }
+
+                lastInputTime = millis();
             }
         }
     }
@@ -181,7 +198,8 @@ void startTimer()
 {
     countingDown = true;
     digitalWrite(RELAY_PIN, LOW);
-    timerEnd = millis() + timerDurationMillis;
+    timerStart = millis();
+    timerEnd = timerStart + timerDurationMillis;
 }
 
 void updateTimer()
@@ -219,5 +237,16 @@ void saveTimer()
     {
         Serial.println("Saving timer\n");
         EEPROM.put(EEPROM_START, timerDurationMillis);
+    }
+}
+
+void updateBacklight()
+{
+    if(lastInputTime + BACKLIGHT_DELAY < millis() && digitalRead(BACKLIGHT_PIN) == LOW)
+    {
+        digitalWrite(BACKLIGHT_PIN, HIGH);
+    }
+    else {
+        digitalWrite(BACKLIGHT_PIN, LOW);
     }
 }
