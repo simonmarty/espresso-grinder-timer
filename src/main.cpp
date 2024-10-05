@@ -3,11 +3,26 @@
 #include <RotaryEncoder.h>
 #include <EEPROM.h>
 
+#ifdef __AVR_ATmega328P__
 LiquidCrystal lcd(5, 4, 9, 8, 7, 6);
+const int BACKLIGHT_PIN = 3;
+const int BUTTON_PIN = 2;
+const int RELAY_PIN = 10;
+const int ROTARY_ENCODER_PIN1 = A2;
+const int ROTARY_ENCODER_PIN2 = A3;
+#elif defined(__AVR_ATmega32U4__)
+LiquidCrystal lcd(5, 4, 9, 8, 7, 6);
+const int BACKLIGHT_PIN = 15;
+const int BUTTON_PIN = 10;
+const int RELAY_PIN = 14;
+const int ROTARY_ENCODER_PIN1 = A2;
+const int ROTARY_ENCODER_PIN2 = A3;
+#else
+#error : MCU not recognized, define your pinouts above
+#endif
 
 void printTime(unsigned long time);
 void updateRotaryEncoder();
-void autoSaveTimer();
 void saveTimer();
 void updateButton();
 void startTimer();
@@ -16,22 +31,16 @@ void updateBacklight();
 
 RotaryEncoder *encoder = nullptr;
 
-const int BACKLIGHT_PIN = 15;
-
 const unsigned long TIMER_INCREMENT_MILLIS = 100;
 const unsigned long TIMER_MIN = TIMER_INCREMENT_MILLIS;
 const unsigned long TIMER_MAX = 100000 - TIMER_INCREMENT_MILLIS;
 const unsigned long BACKLIGHT_DELAY = 5000;
 
-const int EEPROM_START = 0;
-const int BUTTON_PIN = 10;
+const int EEPROM_START = 0x00;
 
 const int DEFAULT_TIMER_DURATION = 10000;
 unsigned long timerStart;
 unsigned long timerEnd;
-
-const int ROTARY_ENCODER_PIN1 = A2;
-const int ROTARY_ENCODER_PIN2 = A3;
 
 unsigned long lastPrintedTime = 0;
 unsigned long lastSavedTime = 0;
@@ -42,8 +51,6 @@ bool lastButtonState = HIGH;
 
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
-
-const int RELAY_PIN = 14;
 
 unsigned long lastTimeAutoSave;
 const unsigned long AUTOSAVE_INTERVAL_MILLIS = 10000;
@@ -59,9 +66,7 @@ void checkPosition()
 unsigned long timerDurationMillis = 0;
 void setup()
 {
-    // put your setup code here, to run once:
     lcd.begin(16, 2);
-    Serial.begin(57600);
 
     EEPROM.get(EEPROM_START, timerDurationMillis);
 
@@ -97,7 +102,7 @@ void loop()
     }
 
     updateTimer();
-    autoSaveTimer();
+    saveTimer();
 
     updateBacklight();
 }
@@ -112,14 +117,8 @@ void printTime(unsigned long time)
         unsigned long decimal = (time % 1000) / 10;
 
         sprintf(buf, "%02lu.%02lu", seconds, decimal);
-        // lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print(buf);
-        // lcd.print(time / 1000);
-        // lcd.print(".");
-        // unsigned long decimal_part = time % 1000 / 10; // remove the 1000ths place
-        // lcd.print(decimal_part / 10);
-        // lcd.print(decimal_part % 10);
 
         lastPrintedTime = time;
     }
@@ -179,7 +178,7 @@ void updateButton()
                     digitalWrite(RELAY_PIN, HIGH);
                     timerEnd = millis();
                     printTime(timerEnd - timerStart);
-                    delay(1000); // remove this
+                    delay(1000); // TODO delay bad, replace with something better
                 }
                 else
                 {
@@ -214,7 +213,7 @@ void updateTimer()
     }
 }
 
-void autoSaveTimer()
+void saveTimer()
 {
     if (countingDown)
     {
@@ -223,30 +222,19 @@ void autoSaveTimer()
 
     if (millis() - lastTimeSinceTimerUpdate > AUTOSAVE_INTERVAL_MILLIS)
     {
-        saveTimer();
-        lastTimeSinceTimerUpdate = millis();
-    }
-}
-
-void saveTimer()
-{
-    unsigned long oldTimerDurationMillis;
-    EEPROM.get(EEPROM_START, oldTimerDurationMillis);
-
-    if (oldTimerDurationMillis != timerDurationMillis)
-    {
-        Serial.println("Saving timer\n");
         EEPROM.put(EEPROM_START, timerDurationMillis);
+        lastTimeSinceTimerUpdate = millis();
     }
 }
 
 void updateBacklight()
 {
-    if(lastInputTime + BACKLIGHT_DELAY < millis() && digitalRead(BACKLIGHT_PIN) == LOW)
+    if (lastInputTime + BACKLIGHT_DELAY < millis() && digitalRead(BACKLIGHT_PIN) == LOW)
     {
         digitalWrite(BACKLIGHT_PIN, HIGH);
     }
-    else {
+    else
+    {
         digitalWrite(BACKLIGHT_PIN, LOW);
     }
 }
