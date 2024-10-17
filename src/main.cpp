@@ -1,18 +1,16 @@
 #include <Arduino.h>
-#include <LiquidCrystal.h>
+#include <Adafruit_ST7735.h>
 #include <RotaryEncoder.h>
 #include <EEPROM.h>
 
+Adafruit_ST7735 lcd(7, 6, 9);
+
 #ifdef __AVR_ATmega328P__
-LiquidCrystal lcd(5, 4, 9, 8, 7, 6);
-const int BACKLIGHT_PIN = 3;
 const int BUTTON_PIN = 2;
 const int RELAY_PIN = 10;
 const int ROTARY_ENCODER_PIN1 = A2;
 const int ROTARY_ENCODER_PIN2 = A3;
 #elif defined(__AVR_ATmega32U4__)
-LiquidCrystal lcd(5, 4, 9, 8, 7, 6);
-const int BACKLIGHT_PIN = 15;
 const int BUTTON_PIN = 10;
 const int RELAY_PIN = 14;
 const int ROTARY_ENCODER_PIN1 = A2;
@@ -27,7 +25,6 @@ void saveTimer();
 void updateButton();
 void startTimer();
 void updateTimer();
-void updateBacklight();
 
 RotaryEncoder *encoder = nullptr;
 
@@ -66,7 +63,14 @@ void checkPosition()
 unsigned long timerDurationMillis = 0;
 void setup()
 {
-    lcd.begin(16, 2);
+    lcd.initR(INITR_MINI160x80_PLUGIN);
+    lcd.setRotation(3);
+
+    lcd.fillScreen(ST7735_BLACK);
+    lcd.setCursor(0, 0);
+    lcd.setTextWrap(false);
+    lcd.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    lcd.setTextSize(5);
 
     EEPROM.get(EEPROM_START, timerDurationMillis);
 
@@ -78,8 +82,6 @@ void setup()
 
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(RELAY_PIN, OUTPUT);
-    pinMode(BACKLIGHT_PIN, OUTPUT);
-    digitalWrite(BACKLIGHT_PIN, HIGH);
     digitalWrite(RELAY_PIN, HIGH);
     encoder = new RotaryEncoder(ROTARY_ENCODER_PIN1, ROTARY_ENCODER_PIN2, RotaryEncoder::LatchMode::TWO03);
 
@@ -103,8 +105,6 @@ void loop()
 
     updateTimer();
     saveTimer();
-
-    updateBacklight();
 }
 
 void printTime(unsigned long time)
@@ -224,17 +224,5 @@ void saveTimer()
     {
         EEPROM.put(EEPROM_START, timerDurationMillis);
         lastTimeSinceTimerUpdate = millis();
-    }
-}
-
-void updateBacklight()
-{
-    if (lastInputTime + BACKLIGHT_DELAY < millis() && digitalRead(BACKLIGHT_PIN) == LOW)
-    {
-        digitalWrite(BACKLIGHT_PIN, HIGH);
-    }
-    else
-    {
-        digitalWrite(BACKLIGHT_PIN, LOW);
     }
 }
