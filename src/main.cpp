@@ -3,21 +3,13 @@
 #include <RotaryEncoder.h>
 #include <EEPROM.h>
 
-Adafruit_ST7735 lcd(7, 6, 9);
+Adafruit_ST7735 lcd(7, 8, 9);
 
-#ifdef __AVR_ATmega328P__
-const int BUTTON_PIN = 2;
-const int RELAY_PIN = 10;
-const int ROTARY_ENCODER_PIN1 = A2;
-const int ROTARY_ENCODER_PIN2 = A3;
-#elif defined(__AVR_ATmega32U4__)
-const int BUTTON_PIN = 10;
-const int RELAY_PIN = 14;
-const int ROTARY_ENCODER_PIN1 = A2;
-const int ROTARY_ENCODER_PIN2 = A3;
-#else
-#error : MCU not recognized, define your pinouts above
-#endif
+#define BUTTON_PIN 2
+#define RELAY_PIN 3
+#define ROTARY_ENCODER_DATA A2
+#define ROTARY_ENCODER_CLK A3
+#define LCD_ENABLE A1
 
 void printTime(unsigned long time);
 void updateRotaryEncoder();
@@ -64,7 +56,9 @@ unsigned long timerDurationMillis = 0;
 void setup()
 {
     lcd.initR(INITR_MINI160x80_PLUGIN);
-    lcd.setRotation(3);
+    lcd.setRotation(1);
+    pinMode(LCD_ENABLE, OUTPUT);
+    digitalWrite(LCD_ENABLE, HIGH);
 
     lcd.fillScreen(ST7735_BLACK);
     lcd.setCursor(0, 0);
@@ -83,10 +77,10 @@ void setup()
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, HIGH);
-    encoder = new RotaryEncoder(ROTARY_ENCODER_PIN1, ROTARY_ENCODER_PIN2, RotaryEncoder::LatchMode::TWO03);
+    encoder = new RotaryEncoder(ROTARY_ENCODER_DATA, ROTARY_ENCODER_CLK, RotaryEncoder::LatchMode::TWO03);
 
-    attachInterrupt(digitalPinToInterrupt(ROTARY_ENCODER_PIN1), checkPosition, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(ROTARY_ENCODER_PIN2), checkPosition, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ROTARY_ENCODER_DATA), checkPosition, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ROTARY_ENCODER_CLK), checkPosition, CHANGE);
 }
 
 void loop()
