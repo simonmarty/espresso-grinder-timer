@@ -9,7 +9,6 @@ Adafruit_ST7735 lcd(7, 8, 9);
 #define RELAY_PIN 3
 #define ROTARY_ENCODER_DATA A2
 #define ROTARY_ENCODER_CLK A3
-#define LCD_ENABLE A1
 
 void printTime(unsigned long time);
 void updateRotaryEncoder();
@@ -23,7 +22,6 @@ RotaryEncoder *encoder = nullptr;
 const unsigned long TIMER_INCREMENT_MILLIS = 100;
 const unsigned long TIMER_MIN = TIMER_INCREMENT_MILLIS;
 const unsigned long TIMER_MAX = 100000 - TIMER_INCREMENT_MILLIS;
-const unsigned long BACKLIGHT_DELAY = 5000;
 
 const int EEPROM_START = 0x00;
 
@@ -57,8 +55,6 @@ void setup()
 {
     lcd.initR(INITR_MINI160x80_PLUGIN);
     lcd.setRotation(1);
-    pinMode(LCD_ENABLE, OUTPUT);
-    digitalWrite(LCD_ENABLE, HIGH);
 
     lcd.fillScreen(ST7735_BLACK);
     lcd.setCursor(0, 0);
