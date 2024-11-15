@@ -54,7 +54,7 @@ unsigned long timerDurationMillis = 0;
 void setup()
 {
     lcd.initR(INITR_MINI160x80_PLUGIN);
-    lcd.setRotation(1);
+    lcd.setRotation(3);
 
     lcd.fillScreen(ST7735_BLACK);
     lcd.setCursor(0, 0);
