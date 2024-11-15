@@ -9,6 +9,8 @@ Adafruit_ST7735 lcd(7, 8, 9);
 #define RELAY_PIN 3
 #define ROTARY_ENCODER_DATA A2
 #define ROTARY_ENCODER_CLK A3
+// Change this value depending on your relay.
+#define RELAY_ON HIGH
 
 void printTime(unsigned long time);
 void updateRotaryEncoder();
@@ -72,7 +74,7 @@ void setup()
 
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, HIGH);
+    digitalWrite(RELAY_PIN, !RELAY_ON);
     encoder = new RotaryEncoder(ROTARY_ENCODER_DATA, ROTARY_ENCODER_CLK, RotaryEncoder::LatchMode::TWO03);
 
     attachInterrupt(digitalPinToInterrupt(ROTARY_ENCODER_DATA), checkPosition, CHANGE);
@@ -178,7 +180,7 @@ void updateButton()
                 if (countingDown)
                 {
                     countingDown = false;
-                    digitalWrite(RELAY_PIN, HIGH);
+                    digitalWrite(RELAY_PIN, !RELAY_ON);
                     timerEnd = millis();
                     printTime(timerEnd - timerStart);
                     delay(1000); // TODO delay bad, replace with something better
@@ -199,7 +201,7 @@ void updateButton()
 void startTimer()
 {
     countingDown = true;
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(RELAY_PIN, RELAY_ON);
     timerStart = millis();
     timerEnd = timerStart + timerDurationMillis;
 }
@@ -211,7 +213,7 @@ void updateTimer()
         if (millis() >= timerEnd)
         {
             countingDown = false;
-            digitalWrite(RELAY_PIN, HIGH);
+            digitalWrite(RELAY_PIN, !RELAY_ON);
         }
     }
 }
