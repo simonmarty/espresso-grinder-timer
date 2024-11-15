@@ -110,6 +110,19 @@ void printTime(unsigned long time)
         lcd.setCursor(0, 0);
         lcd.print(buf);
 
+        const int16_t progressBarStartX = 0;
+        const int16_t progressBarHeight = 10;
+        const int16_t progressBarStartY = lcd.height() - progressBarHeight;
+
+        if (countingDown)
+        {
+            lcd.fillRect(progressBarStartX, progressBarStartY, (int16_t)((1 - (timerDurationMillis - time) / (float)timerDurationMillis) * lcd.width()), progressBarHeight, ST7735_ORANGE);
+        }
+        else
+        {
+            lcd.fillRect(progressBarStartX, progressBarStartY, lcd.width(), progressBarHeight, ST7735_BLACK);
+        }
+
         lastPrintedTime = time;
     }
 }
